@@ -42,7 +42,7 @@ export function createPolicyEngine(
         if (policy.unknownTools === "deny") {
           return {
             allowed: false,
-            reason: `tool ${request.toolName} has no sandbox capability declaration`,
+            reason: `tool ${request.toolName} has no sandbox capability declaration; declare it via "tools" in sandbox.json or set unknownTools to "allow"`,
           };
         }
         return { allowed: true };

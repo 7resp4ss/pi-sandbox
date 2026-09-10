@@ -147,3 +147,65 @@ describe("extractPaths", () => {
     expect(seenContexts).toEqual(["/w"]);
   });
 });
+
+describe("config-declared tools", () => {
+  it("denies an undeclared orchestration tool and explains the fix", () => {
+    const registry = createCapabilityRegistry();
+    const engine = createPolicyEngine(
+      buildEffectivePolicy({ level: "w" }, "/workspace"),
+      registry,
+    );
+    const decision = engine.check({ toolName: "subagent", cwd: "/workspace" });
+    expect(decision.allowed).toBe(false);
+    expect(decision).toMatchObject({
+      reason: expect.stringMatching(/declare it via "tools" in sandbox\.json/),
+    });
+  });
+
+  it("passes through a declared orchestration tool in w and r", () => {
+    const registry = createCapabilityRegistry();
+    registry.register({ toolName: "subagent", capabilities: [] });
+    for (const level of ["w", "r"] as const) {
+      const engine = createPolicyEngine(
+        buildEffectivePolicy({ level }, "/workspace"),
+        registry,
+      );
+      expect(
+        engine.check({ toolName: "subagent", cwd: "/workspace" }).allowed,
+      ).toBe(true);
+    }
+  });
+
+  it("applies capability-level semantics to config-declared resource tools", () => {
+    const registry = createCapabilityRegistry();
+    registry.register({
+      toolName: "mcp__fs__save",
+      capabilities: ["filesystem.write"],
+    });
+    const readonly = createPolicyEngine(
+      buildEffectivePolicy({ level: "r" }, "/workspace"),
+      registry,
+    );
+    expect(
+      readonly.check({ toolName: "mcp__fs__save", cwd: "/workspace" })
+        .allowed,
+    ).toBe(false);
+    const writable = createPolicyEngine(
+      buildEffectivePolicy({ level: "w" }, "/workspace"),
+      registry,
+    );
+    expect(
+      writable.check({ toolName: "mcp__fs__save", cwd: "/workspace" })
+        .allowed,
+    ).toBe(true);
+    // The generic path/file_path convention still applies to config-declared
+    // tools: a workspace-external path is denied even in w.
+    expect(
+      writable.check({
+        toolName: "mcp__fs__save",
+        readPaths: ["../outside.txt"],
+        cwd: "/workspace",
+      }).allowed,
+    ).toBe(false);
+  });
+});

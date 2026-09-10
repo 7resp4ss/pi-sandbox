@@ -5,6 +5,7 @@ export type {
   SandboxCapability,
   SandboxConfig,
   SandboxLevel,
+  SandboxToolDeclarationConfig,
   UnknownToolPolicy,
 } from "./types.js";
 export type {
@@ -16,5 +17,10 @@ export {
   declareSandboxTool,
   getSandboxCapabilityRegistry,
 } from "./capabilities/declaration-api.js";
-export { normalizeSandboxLevel } from "./policy/levels.js";
+export {
+  normalizeSandboxLevel,
+  resolveSessionLevel,
+  strictestLevel,
+  SANDBOX_LEVEL_ENV,
+} from "./policy/levels.js";
 export { getAgentDir, loadConfig } from "./config/config-loader.js";

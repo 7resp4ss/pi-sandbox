@@ -10,9 +10,16 @@ export type SandboxCapability =
 
 export type UnknownToolPolicy = "deny" | "allow";
 
+/** Declarative counterpart of `declareSandboxTool` for sandbox.json. */
+export interface SandboxToolDeclarationConfig {
+  capabilities: readonly SandboxCapability[];
+}
+
 export interface SandboxConfig {
   level?: SandboxLevel;
   unknownTools?: UnknownToolPolicy;
+  /** Tool capability declarations; config can extend but not remove builtins. */
+  tools?: Record<string, SandboxToolDeclarationConfig>;
   network?: { allowedDomains?: string[]; deniedDomains?: string[] };
   filesystem?: {
     allowRead?: string[];

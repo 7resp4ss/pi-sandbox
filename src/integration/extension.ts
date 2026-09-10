@@ -7,7 +7,7 @@ import {
 import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.js";
 import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.js";
 import { loadConfig } from "../config/config-loader.js";
-import { normalizeSandboxLevel } from "../policy/levels.js";
+import { resolveSessionLevel, SANDBOX_LEVEL_ENV } from "../policy/levels.js";
 import { buildEffectivePolicy } from "../policy/policy-builder.js";
 import { createPolicyEngine } from "../policy/policy-engine.js";
 import { executeSandboxedProcess } from "../runtime/process-executor.js";
@@ -39,9 +39,9 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   registerBuiltinCapabilities(registry);
 
   pi.registerFlag("sandbox", {
-    description: "Sandbox level: r, w, or yolo",
+    description:
+      "Sandbox level: r, w, or yolo (default w; sandbox.json may set level)",
     type: "string",
-    default: "w",
   });
 
   const originalCwd = process.cwd();
@@ -86,11 +86,16 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   );
 
   pi.on("session_start", async (_event, ctx) => {
-    const level = normalizeSandboxLevel(pi.getFlag("sandbox"));
-    const policy = buildEffectivePolicy(
-      { ...loadConfig(ctx.cwd), level },
-      ctx.cwd,
-    );
+    const config = loadConfig(ctx.cwd);
+    for (const [toolName, declaration] of Object.entries(config.tools ?? {})) {
+      registry.register({ toolName, capabilities: declaration.capabilities });
+    }
+    const level = resolveSessionLevel({
+      flag: pi.getFlag("sandbox"),
+      configLevel: config.level,
+      env: process.env[SANDBOX_LEVEL_ENV],
+    });
+    const policy = buildEffectivePolicy({ ...config, level }, ctx.cwd);
     const nextSession = new SandboxSession(policy);
     await nextSession.start();
 
@@ -99,6 +104,9 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
     // tools have already fallen back to the unsandboxed implementation.
     session = nextSession;
     engine = createPolicyEngine(policy, registry);
+    // Export the level so sessions this one delegates to (in-process children
+    // and spawned runners) inherit it as a ceiling that can only tighten.
+    process.env[SANDBOX_LEVEL_ENV] = level;
     ctx.ui.setStatus("sandbox", `Sandbox: ${level}`);
     if (level === "yolo")
       ctx.ui.notify("WARNING: sandbox mode is yolo.", "warning");
