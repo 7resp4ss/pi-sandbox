@@ -1,0 +1,36 @@
+{
+  "name": "pi-sandbox",
+  "version": "0.1.0",
+  "description": "Capability-aware sandbox extension for pi",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./dist/extension.js"
+    ]
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "^0.0.75"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@types/node": "^22.19.19",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
+  }
+}
