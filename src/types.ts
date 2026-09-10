@@ -4,9 +4,7 @@ export type SandboxCapability =
   | "filesystem.read"
   | "filesystem.write"
   | "process.execute"
-  | "network.connect"
-  | "credential.read"
-  | "agent.spawn";
+  | "network.connect";
 
 export type UnknownToolPolicy = "deny" | "allow";
 

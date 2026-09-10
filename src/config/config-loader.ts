@@ -12,8 +12,6 @@ const VALID_CAPABILITIES: readonly SandboxCapability[] = [
   "filesystem.write",
   "process.execute",
   "network.connect",
-  "credential.read",
-  "agent.spawn",
 ];
 
 /** Validate the `tools` section of a config file; undefined when absent. */

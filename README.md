@@ -15,7 +15,7 @@ capabilities with `declareSandboxTool`. Unmanaged tools are denied in `r` and
 `w` by default.
 
 The public capability vocabulary is `filesystem.read`, `filesystem.write`,
-`process.execute`, `network.connect`, `credential.read`, and `agent.spawn`.
+`process.execute`, and `network.connect`.
 
 ## Level resolution
 

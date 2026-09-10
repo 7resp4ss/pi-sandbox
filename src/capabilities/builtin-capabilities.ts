@@ -17,8 +17,4 @@ export function registerBuiltinCapabilities(
     toolName: "powershell",
     capabilities: ["process.execute"],
   });
-
-  // `agent.spawn` remains part of the public capability vocabulary so the
-  // future subagent broker can use the same declaration protocol. It is not
-  // registered as a built-in tool until child-policy inheritance is enforced.
 }
