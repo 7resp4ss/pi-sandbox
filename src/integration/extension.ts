@@ -3,6 +3,8 @@ import {
   createPowerShellTool,
   type BashOperations,
   type ExtensionAPI,
+  type Theme,
+  type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.js";
 import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.js";
@@ -19,6 +21,13 @@ import type { SandboxLevel } from "../types.js";
 import { checkToolCall } from "./tool-call-gate.js";
 
 let executionCounter = 0;
+
+/** Footer status: dim label + level colored by severity (r green, w yellow, yolo red). */
+function formatSandboxStatus(theme: Theme, level: SandboxLevel): string {
+  const levelColor: ThemeColor =
+    level === "r" ? "success" : level === "w" ? "warning" : "error";
+  return `${theme.fg("dim", "Sandbox:")} ${theme.fg(levelColor, level)}`;
+}
 
 function createSandboxOperations(shell: string): BashOperations {
   return {
@@ -106,7 +115,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
       env: envLevel,
     });
     await controller.switchTo(config, level, ctx.cwd);
-    ctx.ui.setStatus("sandbox", `Sandbox: ${level}`);
+    ctx.ui.setStatus("sandbox", formatSandboxStatus(ctx.ui.theme, level));
     if (level === "yolo")
       ctx.ui.notify("sandbox mode is yolo", "warning");
   });
@@ -181,7 +190,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
           "error",
         );
       }
-      ctx.ui.setStatus("sandbox", `Sandbox: ${next}`);
+      ctx.ui.setStatus("sandbox", formatSandboxStatus(ctx.ui.theme, next));
       ctx.ui.notify(`sandbox level switched to ${next}`, "info");
       if (next === "yolo")
         ctx.ui.notify("sandbox mode is yolo", "warning");

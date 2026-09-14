@@ -12,7 +12,9 @@ pi --extension ./src/index.ts --sandbox w       # workspace writable (default)
 pi --extension ./src/index.ts --sandbox yolo    # explicitly disable sandboxing
 ```
 
-Use `/sandbox` inside pi to inspect the effective policy. Level `r` permits workspace reads, `w` also permits workspace writes, and `yolo` disables restrictions.
+Use `/sandbox` inside pi to inspect the effective policy, and `/sandbox <r|w|yolo>` to switch the running session's level (with tab completion for the level names). Level `r` permits workspace reads, `w` also permits workspace writes, and `yolo` disables restrictions.
+
+Switching rebuilds the policy and restarts the OS sandbox runtime in place; the tool gate, the status bar, and the exported `PI_SANDBOX_LEVEL` follow immediately. A session that inherited `PI_SANDBOX_LEVEL` from its parent can only switch within that ceiling (`strictest(requested, inherited)`), so runtime switching preserves the rule that delegation can never widen a sandbox. If the runtime refuses the new level, the previous level is restored and `/sandbox` reports the failure.
 
 ## Flexible permission configuration
 
