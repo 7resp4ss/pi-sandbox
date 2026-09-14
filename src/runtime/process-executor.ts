@@ -1,5 +1,13 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { SandboxManager, grantWindowsAcl, revokeWindowsAcl, restoreWindowsAcl, getWindowsSandboxUserStatus, resolveSrtWin, VENDORED_SRT_WIN_EXE } from "@anthropic-ai/sandbox-runtime";
+import {
+  SandboxManager,
+  grantWindowsAcl,
+  revokeWindowsAcl,
+  restoreWindowsAcl,
+  getWindowsSandboxUserStatus,
+  resolveSrtWin,
+  VENDORED_SRT_WIN_EXE,
+} from "@anthropic-ai/sandbox-runtime";
 import type { EffectiveSandboxPolicy } from "../types.ts";
 
 export interface ProcessOptions {
@@ -35,6 +43,7 @@ export async function executeSandboxedProcess(
     options.shell,
     options.policy ? {
       filesystem: {
+        allowWrite: [],
         denyRead: [...options.policy.denyRead],
         denyWrite: [...options.policy.denyWrite],
       },
@@ -44,11 +53,22 @@ export async function executeSandboxedProcess(
     { commandId: options.commandId, commandText: options.command },
   );
   const windows = process.platform === "win32" && options.policy
-    ? { status: getWindowsSandboxUserStatus({ srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }), srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }
+    ? (() => {
+        const srtWin = resolveSrtWin({ path: VENDORED_SRT_WIN_EXE });
+        return { status: getWindowsSandboxUserStatus({ srtWin }), srtWin };
+      })()
     : undefined;
+  let windowsAclGranted = false;
   if (windows?.status.sid && options.policy) {
     try {
-      grantWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, read: options.policy.allowRead, write: options.policy.allowWrite, srtWin: windows.srtWin });
+      grantWindowsAcl({
+        sandboxUserSid: windows.status.sid,
+        holderPid: process.pid,
+        read: options.policy.allowRead,
+        write: options.policy.allowWrite,
+        srtWin: windows.srtWin,
+      });
+      windowsAclGranted = true;
     } catch (error) {
       revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
       restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
@@ -58,13 +78,23 @@ export async function executeSandboxedProcess(
 
 
   return new Promise((resolve, reject) => {
-    const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
-      cwd: options.cwd,
-      env: wrapped.env,
-      shell: false,
-      detached: process.platform !== "win32",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let child: ChildProcess;
+    try {
+      child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
+        cwd: options.cwd,
+        env: wrapped.env,
+        shell: false,
+        detached: process.platform !== "win32",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (error) {
+      if (windowsAclGranted && windows?.status.sid) {
+        revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+        restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+      }
+      reject(error);
+      return;
+    }
     if (options.onData) {
       child.stdout?.on("data", options.onData);
       child.stderr?.on("data", options.onData);
@@ -75,7 +105,7 @@ export async function executeSandboxedProcess(
     const onAbort = () => terminate();
     options.signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => {
-      if (windows?.status.sid) {
+      if (windowsAclGranted && windows?.status.sid) {
         revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
         restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
       }
