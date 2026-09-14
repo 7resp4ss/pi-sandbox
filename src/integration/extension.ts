@@ -7,12 +7,15 @@ import {
 import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.js";
 import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.js";
 import { loadConfig } from "../config/config-loader.js";
-import { resolveSessionLevel, SANDBOX_LEVEL_ENV } from "../policy/levels.js";
-import { buildEffectivePolicy } from "../policy/policy-builder.js";
-import { createPolicyEngine } from "../policy/policy-engine.js";
+import {
+  normalizeSandboxLevel,
+  resolveSessionLevel,
+  SANDBOX_LEVEL_ENV,
+  strictestLevel,
+} from "../policy/levels.js";
 import { executeSandboxedProcess } from "../runtime/process-executor.js";
-import { SandboxSession } from "../runtime/sandbox-session.js";
-import type { PolicyEngine } from "../types.js";
+import { SandboxController } from "../runtime/sandbox-controller.js";
+import type { SandboxLevel } from "../types.js";
 import { checkToolCall } from "./tool-call-gate.js";
 
 let executionCounter = 0;
@@ -48,12 +51,17 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   const originalBash = createBashTool(originalCwd);
   const originalPowerShell = createPowerShellTool(originalCwd);
 
-  let session: SandboxSession | undefined;
-  let engine: PolicyEngine | undefined;
+  const controller = new SandboxController(registry);
+  /**
+   * Level inherited through PI_SANDBOX_LEVEL at session start, if any.
+   * Runtime switches may move within it but never above it, mirroring the
+   * rule that delegation can only tighten a session's sandbox.
+   */
+  let inheritedCeiling: SandboxLevel | undefined;
 
   // Single source of truth for whether shell tools run in the OS sandbox.
   // In yolo mode the session never activates, so this one check covers it.
-  const useSandbox = () => session?.isActive === true;
+  const useSandbox = () => controller.isSandboxActive;
 
   pi.registerTool({
     ...originalBash,
@@ -77,8 +85,8 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   });
 
   pi.on("tool_call", async (event, ctx) => {
-    if (!engine) return undefined;
-    return checkToolCall(engine, registry, event, ctx.cwd);
+    if (!controller.policyEngine) return undefined;
+    return checkToolCall(controller.policyEngine, registry, event, ctx.cwd);
   });
 
   pi.on("user_bash", () =>
@@ -90,47 +98,93 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
     for (const [toolName, declaration] of Object.entries(config.tools ?? {})) {
       registry.register({ toolName, capabilities: declaration.capabilities });
     }
+    const envLevel = process.env[SANDBOX_LEVEL_ENV]?.trim();
+    inheritedCeiling = envLevel ? normalizeSandboxLevel(envLevel) : undefined;
     const level = resolveSessionLevel({
       flag: pi.getFlag("sandbox"),
       configLevel: config.level,
-      env: process.env[SANDBOX_LEVEL_ENV],
+      env: envLevel,
     });
-    const policy = buildEffectivePolicy({ ...config, level }, ctx.cwd);
-    const nextSession = new SandboxSession(policy);
-    await nextSession.start();
-
-    // Publish the new state only after runtime initialization succeeds. This
-    // prevents a failed startup from leaving policy checks active while shell
-    // tools have already fallen back to the unsandboxed implementation.
-    session = nextSession;
-    engine = createPolicyEngine(policy, registry);
-    // Export the level so sessions this one delegates to (in-process children
-    // and spawned runners) inherit it as a ceiling that can only tighten.
-    process.env[SANDBOX_LEVEL_ENV] = level;
+    await controller.switchTo(config, level, ctx.cwd);
     ctx.ui.setStatus("sandbox", `Sandbox: ${level}`);
     if (level === "yolo")
       ctx.ui.notify("sandbox mode is yolo", "warning");
   });
 
   pi.on("session_shutdown", async () => {
-    await session?.stop();
-    session = undefined;
-    engine = undefined;
+    await controller.shutdown();
   });
 
   pi.registerCommand("sandbox", {
-    description: "Show sandbox policy",
-    handler: async (_args, ctx) => {
-      if (!engine) return ctx.ui.notify("Sandbox has not started", "info");
-      const policy = engine.describe();
-      ctx.ui.notify(
-        [
-          `Sandbox level: ${policy.level}`,
-          `Unknown tools: ${policy.unknownTools}`,
-          `Workspace: ${policy.workspace}`,
-        ].join("\n"),
-        "info",
-      );
+    description: "Show the sandbox policy or switch level: /sandbox [r|w|yolo]",
+    getArgumentCompletions: (prefix) =>
+      ["r", "w", "yolo"]
+        .filter((level) => level.startsWith(prefix))
+        .map((level) => ({
+          value: level,
+          label: level,
+          description:
+            level === "r"
+              ? "workspace read-only"
+              : level === "w"
+                ? "workspace writable"
+                : "disable sandboxing",
+        })),
+    handler: async (args, ctx) => {
+      if (!controller.policyEngine || controller.currentLevel === undefined) {
+        return ctx.ui.notify("Sandbox has not started", "info");
+      }
+      const arg = args.trim();
+      if (!arg) {
+        const policy = controller.policyEngine.describe();
+        return ctx.ui.notify(
+          [
+            `Sandbox level: ${policy.level}`,
+            `Unknown tools: ${policy.unknownTools}`,
+            `Workspace: ${policy.workspace}`,
+            "Usage: /sandbox <r|w|yolo>",
+          ].join("\n"),
+          "info",
+        );
+      }
+      let requested: SandboxLevel;
+      try {
+        requested = normalizeSandboxLevel(arg);
+      } catch (error) {
+        return ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          "error",
+        );
+      }
+      const next = inheritedCeiling
+        ? strictestLevel(requested, inheritedCeiling)
+        : requested;
+      if (next === controller.currentLevel) {
+        return ctx.ui.notify(
+          next === requested
+            ? `sandbox is already at ${next}`
+            : `the inherited PI_SANDBOX_LEVEL ceiling keeps the sandbox at ${next}`,
+          "info",
+        );
+      }
+      if (next !== requested) {
+        ctx.ui.notify(
+          `inherited PI_SANDBOX_LEVEL ceiling clamps ${requested} to ${next}`,
+          "warning",
+        );
+      }
+      try {
+        await controller.switchTo(loadConfig(ctx.cwd), next, ctx.cwd);
+      } catch (error) {
+        return ctx.ui.notify(
+          `failed to switch sandbox level: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
+      }
+      ctx.ui.setStatus("sandbox", `Sandbox: ${next}`);
+      ctx.ui.notify(`sandbox level switched to ${next}`, "info");
+      if (next === "yolo")
+        ctx.ui.notify("sandbox mode is yolo", "warning");
     },
   });
 }
