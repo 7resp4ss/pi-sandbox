@@ -50,7 +50,9 @@ export async function executeSandboxedProcess(
   const user = srtWin ? await getWindowsSandboxUserStatusAsync({ srtWin }) : undefined;
   const windowsAcl = user?.sid && srtWin ? { sandboxUserSid: user.sid, srtWin } : undefined;
   if (windowsAcl) {
-    grantWindowsAcl({ sandboxUserSid: windowsAcl.sandboxUserSid, holderPid: process.pid, read: options.policy.allowRead, write: options.policy.allowWrite, srtWin: windowsAcl.srtWin });
+    const policy = options.policy;
+    if (!policy) throw new Error("sandbox policy is required for Windows ACL grants");
+    grantWindowsAcl({ sandboxUserSid: windowsAcl.sandboxUserSid, holderPid: process.pid, read: policy.allowRead, write: policy.allowWrite, srtWin: windowsAcl.srtWin });
   }
 
   return new Promise((resolve, reject) => {
