@@ -1,5 +1,5 @@
 {
-  "name": "pi-sandbox",
+  "name": "@7resp4ss/pi-sandbox",
   "version": "0.1.0",
   "description": "Capability-aware sandbox extension for pi",
   "type": "module",
