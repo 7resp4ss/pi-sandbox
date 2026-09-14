@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { homedir } from "node:os";
 import {
   SandboxManager,
   grantWindowsAcl,
@@ -9,6 +10,7 @@ import {
   VENDORED_SRT_WIN_EXE,
 } from "@anthropic-ai/sandbox-runtime";
 import type { EffectiveSandboxPolicy } from "../types.ts";
+import { expandWindowsFsGlobs } from "./windows-glob-expand.ts";
 
 export interface ProcessOptions {
   command: string;
@@ -38,14 +40,20 @@ export async function executeSandboxedProcess(
 ): Promise<{ exitCode: number | null }> {
   // The runtime returns a complete argv so the caller never needs a second
   // shell parse. This matters for both quoting and cross-platform use.
+  const denyRead = options.policy && process.platform === "win32"
+    ? expandWindowsFsGlobs(options.policy.denyRead, options.cwd, homedir())
+    : options.policy?.denyRead;
+  const denyWrite = options.policy && process.platform === "win32"
+    ? expandWindowsFsGlobs(options.policy.denyWrite, options.cwd, homedir())
+    : options.policy?.denyWrite;
   const wrapped = await SandboxManager.wrapWithSandboxArgv(
     options.command,
     options.shell,
     options.policy ? {
       filesystem: {
         allowWrite: [],
-        denyRead: [...options.policy.denyRead],
-        denyWrite: [...options.policy.denyWrite],
+        denyRead: [...(denyRead ?? [])],
+        denyWrite: [...(denyWrite ?? [])],
       },
     } : undefined,
     options.signal,

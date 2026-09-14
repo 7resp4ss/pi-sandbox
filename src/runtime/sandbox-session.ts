@@ -1,11 +1,17 @@
+import { homedir } from "node:os";
 import {
   SandboxManager,
   VENDORED_SRT_WIN_EXE,
   type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { EffectiveSandboxPolicy } from "../types.ts";
+import { expandWindowsFsGlobs } from "./windows-glob-expand.ts";
 
 function toRuntimeConfig(policy: EffectiveSandboxPolicy): SandboxRuntimeConfig {
+  const expand = (paths: readonly string[]): string[] =>
+    process.platform === "win32"
+      ? expandWindowsFsGlobs(paths, policy.workspace, homedir())
+      : [...paths];
   return {
     network: {
       allowedDomains: [...policy.allowedDomains],
@@ -15,13 +21,13 @@ function toRuntimeConfig(policy: EffectiveSandboxPolicy): SandboxRuntimeConfig {
       // Windows runtime 0.0.76 applies session grants with recursive ACL
       // propagation; this can block for 60s on large workspaces. Grants are
       // supplied at exec time instead.
-      allowRead: [...policy.allowRead],
+      allowRead: expand(policy.allowRead),
       // Windows deny ACLs are applied per exec by sandbox-runtime. Applying
       // them during session initialization triggers the old recursive stamp
       // path and blocks startup on profile-managed directories.
-      denyRead: [...policy.denyRead],
-      allowWrite: [...policy.allowWrite],
-      denyWrite: [...policy.denyWrite],
+      denyRead: expand(policy.denyRead),
+      allowWrite: expand(policy.allowWrite),
+      denyWrite: expand(policy.denyWrite),
     },
     // Windows requires an explicit srt-win path; resolveSrtWin has no
     // implicit fallback (a discovered binary could sit inside the sandbox
