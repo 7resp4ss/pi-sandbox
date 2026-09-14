@@ -35,7 +35,6 @@ export async function executeSandboxedProcess(
     options.shell,
     options.policy ? {
       filesystem: {
-        allowWrite: options.policy ? [...options.policy.allowWrite] : [],
         denyRead: [...options.policy.denyRead],
         denyWrite: [...options.policy.denyWrite],
       },

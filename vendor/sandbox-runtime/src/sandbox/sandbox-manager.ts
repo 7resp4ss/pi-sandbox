@@ -863,10 +863,11 @@ async function initialize(
       // stampedSet would leave reset()/updateConfig() seeing state
       // that never landed.
       const anyApplied =
-        acc.grantRead.length > 0 ||
-        acc.grantWrite.length > 0 ||
-        acc.denyRead.length > 0 ||
-        acc.denyWrite.length > 0
+        getPlatform() !== 'windows' &&
+        (acc.grantRead.length > 0 ||
+          acc.grantWrite.length > 0 ||
+          acc.denyRead.length > 0 ||
+          acc.denyWrite.length > 0)
       if (anyApplied) {
         windowsFsStampedSet = acc
         logForDebugging(
