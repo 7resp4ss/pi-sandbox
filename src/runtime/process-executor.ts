@@ -38,8 +38,8 @@ function killProcessTree(child: ChildProcess): void {
 }
 
 function windowsGrantPaths(paths: readonly string[], cwd: string): string[] {
-  return paths.filter((path) => {
-    if (path.startsWith("/")) return false;
+  return paths.flatMap((path) => {
+    if (path.startsWith("/")) return [];
     const expanded = path === "~"
       ? homedir()
       : path.startsWith("~/") || path.startsWith("~\\")
@@ -47,7 +47,7 @@ function windowsGrantPaths(paths: readonly string[], cwd: string): string[] {
         : isAbsolute(path)
           ? path
           : resolve(cwd, path);
-    return existsSync(expanded);
+    return existsSync(expanded) ? [expanded] : [];
   });
 }
 
