@@ -44,7 +44,7 @@
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "0.0.76"
+    "@anthropic-ai/sandbox-runtime": "file:./vendor/sandbox-runtime"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
