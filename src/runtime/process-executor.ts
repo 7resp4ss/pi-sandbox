@@ -47,7 +47,13 @@ export async function executeSandboxedProcess(
     ? { status: getWindowsSandboxUserStatus({ srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }), srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }
     : undefined;
   if (windows?.status.sid && options.policy) {
-    grantWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, read: options.policy.allowRead, write: options.policy.allowWrite, srtWin: windows.srtWin });
+    try {
+      grantWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, read: options.policy.allowRead, write: options.policy.allowWrite, srtWin: windows.srtWin });
+    } catch (error) {
+      revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+      restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+      throw error;
+    }
   }
 
 
