@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
+import { SandboxManager, grantWindowsAcl, revokeWindowsAcl, restoreWindowsAcl, getWindowsSandboxUserStatus, resolveSrtWin, VENDORED_SRT_WIN_EXE } from "@anthropic-ai/sandbox-runtime";
 import type { EffectiveSandboxPolicy } from "../types.ts";
 
 export interface ProcessOptions {
@@ -35,6 +35,7 @@ export async function executeSandboxedProcess(
     options.shell,
     options.policy ? {
       filesystem: {
+        allowWrite: options.policy ? [...options.policy.allowWrite] : [],
         denyRead: [...options.policy.denyRead],
         denyWrite: [...options.policy.denyWrite],
       },
@@ -43,6 +44,12 @@ export async function executeSandboxedProcess(
     options.cwd,
     { commandId: options.commandId, commandText: options.command },
   );
+  const windows = process.platform === "win32" && options.policy
+    ? { status: getWindowsSandboxUserStatus({ srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }), srtWin: resolveSrtWin({ path: VENDORED_SRT_WIN_EXE }) }
+    : undefined;
+  if (windows?.status.sid && options.policy) {
+    grantWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, read: options.policy.allowRead, write: options.policy.allowWrite, srtWin: windows.srtWin });
+  }
 
 
   return new Promise((resolve, reject) => {
@@ -63,6 +70,10 @@ export async function executeSandboxedProcess(
     const onAbort = () => terminate();
     options.signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => {
+      if (windows?.status.sid) {
+        revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+        restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
+      }
       if (timer) clearTimeout(timer);
       options.signal?.removeEventListener("abort", onAbort);
     };

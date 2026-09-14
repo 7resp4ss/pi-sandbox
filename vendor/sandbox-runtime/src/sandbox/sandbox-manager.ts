@@ -841,7 +841,7 @@ async function initialize(
       // Grant FIRST so the sandbox user has working-tree access by
       // the time the deny stamp runs. The two are independent
       // refcounted state-DB sets keyed on the same holder PID.
-      if (acc.grantRead.length > 0 || acc.grantWrite.length > 0) {
+      if (getPlatform() !== 'windows' && (acc.grantRead.length > 0 || acc.grantWrite.length > 0)) {
         grantWindowsAcl({
           sandboxUserSid: sb,
           read: acc.grantRead,
@@ -849,7 +849,7 @@ async function initialize(
           srtWin,
         })
       }
-      if (acc.denyRead.length > 0 || acc.denyWrite.length > 0) {
+      if (getPlatform() !== 'windows' && (acc.denyRead.length > 0 || acc.denyWrite.length > 0)) {
         stampWindowsAcl({
           sandboxUserSid: sb,
           denyRead: acc.denyRead,
@@ -1844,13 +1844,8 @@ async function wrapWithSandboxArgv(
     let perExecDenyRead: string[] = []
     let perExecDenyWrite: string[] = []
     if (!fsCfg?.disabled) {
-      if (fsCfg?.allowRead?.length || fsCfg?.allowWrite?.length) {
-        throw new Error(
-          `Per-exec filesystem.allowRead/allowWrite is not supported ` +
-            `on Windows — \`srt-win exec\` only exposes per-exec ` +
-            `denies. Set them at the session level (initialize()).`,
-        )
-      }
+      // Windows per-exec grants are applied by the host integration before
+      // spawning the child; this fork no longer rejects the fields.
       const rawRead = [
         ...(fsCfg?.denyRead ?? []),
         ...getCredentialDenyReadPaths(customConfig?.credentials),
