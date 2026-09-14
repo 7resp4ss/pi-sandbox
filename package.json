@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "description": "Capability-aware sandbox extension for pi",
   "type": "module",
-  "main": "./dist/index.js",
+  "license": "MIT",
+  "keywords": ["pi-package", "pi-extension", "pi", "coding-agent", "sandbox", "security", "filesystem", "process", "network", "developer-tools", "ai-agent"],
+  "repository": { "type": "git", "url": "https://github.com/7resp4ss/pi-sandbox.git" },
+  "homepage": "https://github.com/7resp4ss/pi-sandbox#readme",
+  "bugs": { "url": "https://github.com/7resp4ss/pi-sandbox/issues" },
+  "main": "src/index.ts",
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
@@ -12,7 +17,7 @@
   ],
   "pi": {
     "extensions": [
-      "./dist/extension.js"
+    "./src/index.ts"
     ]
   },
   "scripts": {
