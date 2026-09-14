@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
+import { isAbsolute, resolve } from "node:path";
 import {
   SandboxManager,
   grantWindowsAcl,
@@ -33,6 +35,20 @@ function killProcessTree(child: ChildProcess): void {
     }
   }
   child.kill("SIGKILL");
+}
+
+function windowsGrantPaths(paths: readonly string[], cwd: string): string[] {
+  return paths.filter((path) => {
+    if (path.startsWith("/")) return false;
+    const expanded = path === "~"
+      ? homedir()
+      : path.startsWith("~/") || path.startsWith("~\\")
+        ? resolve(homedir(), path.slice(2))
+        : isAbsolute(path)
+          ? path
+          : resolve(cwd, path);
+    return existsSync(expanded);
+  });
 }
 
 export async function executeSandboxedProcess(
@@ -72,8 +88,8 @@ export async function executeSandboxedProcess(
       grantWindowsAcl({
         sandboxUserSid: windows.status.sid,
         holderPid: process.pid,
-        read: options.policy.allowRead,
-        write: options.policy.allowWrite,
+        read: windowsGrantPaths(options.policy.allowRead, options.cwd),
+        write: windowsGrantPaths(options.policy.allowWrite, options.cwd),
         srtWin: windows.srtWin,
       });
       windowsAclGranted = true;
