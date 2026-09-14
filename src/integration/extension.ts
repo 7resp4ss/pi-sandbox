@@ -109,7 +109,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
     process.env[SANDBOX_LEVEL_ENV] = level;
     ctx.ui.setStatus("sandbox", `Sandbox: ${level}`);
     if (level === "yolo")
-      ctx.ui.notify("WARNING: sandbox mode is yolo.", "warning");
+      ctx.ui.notify("sandbox mode is yolo", "warning");
   });
 
   pi.on("session_shutdown", async () => {
