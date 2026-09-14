@@ -6,19 +6,19 @@ import {
   type Theme,
   type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
-import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.js";
-import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.js";
-import { loadConfig } from "../config/config-loader.js";
+import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.ts";
+import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.ts";
+import { loadConfig } from "../config/config-loader.ts";
 import {
   normalizeSandboxLevel,
   resolveSessionLevel,
   SANDBOX_LEVEL_ENV,
   strictestLevel,
-} from "../policy/levels.js";
-import { executeSandboxedProcess } from "../runtime/process-executor.js";
-import { SandboxController } from "../runtime/sandbox-controller.js";
-import type { SandboxLevel } from "../types.js";
-import { checkToolCall } from "./tool-call-gate.js";
+} from "../policy/levels.ts";
+import { executeSandboxedProcess } from "../runtime/process-executor.ts";
+import { SandboxController } from "../runtime/sandbox-controller.ts";
+import type { EffectiveSandboxPolicy, SandboxLevel } from "../types.ts";
+import { checkToolCall } from "./tool-call-gate.ts";
 
 let executionCounter = 0;
 
@@ -29,7 +29,7 @@ function formatSandboxStatus(theme: Theme, level: SandboxLevel): string {
   return `${theme.fg("dim", "Sandbox:")} ${theme.fg(levelColor, level)}`;
 }
 
-function createSandboxOperations(shell: string): BashOperations {
+function createSandboxOperations(shell: string, policy: () => EffectiveSandboxPolicy | undefined): BashOperations {
   return {
     exec: (command, cwd, options) => {
       executionCounter += 1;
@@ -40,6 +40,7 @@ function createSandboxOperations(shell: string): BashOperations {
         signal: options.signal,
         timeoutMs: options.timeout ? options.timeout * 1000 : undefined,
         commandId: `${shell}:${executionCounter}`,
+        policy: policy(),
         onData: options.onData,
       });
     },
@@ -78,7 +79,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
     execute: (id, params, signal, onUpdate, ctx) =>
       useSandbox()
         ? createBashTool(ctx.cwd, {
-            operations: createSandboxOperations("bash"),
+            operations: createSandboxOperations("bash", () => controller.policyEngine?.describe()),
           }).execute(id, params, signal, onUpdate)
         : originalBash.execute(id, params, signal, onUpdate),
   });
@@ -88,7 +89,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
     execute: (id, params, signal, onUpdate, ctx) =>
       useSandbox()
         ? createPowerShellTool(ctx.cwd, {
-            operations: createSandboxOperations("powershell"),
+            operations: createSandboxOperations("powershell", () => controller.policyEngine?.describe()),
           }).execute(id, params, signal, onUpdate)
         : originalPowerShell.execute(id, params, signal, onUpdate),
   });
@@ -99,7 +100,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   });
 
   pi.on("user_bash", () =>
-    useSandbox() ? { operations: createSandboxOperations("bash") } : undefined,
+    useSandbox() ? { operations: createSandboxOperations("bash", () => controller.policyEngine?.describe()) } : undefined,
   );
 
   pi.on("session_start", async (_event, ctx) => {

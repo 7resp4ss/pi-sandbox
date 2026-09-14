@@ -4,10 +4,27 @@
   "description": "Capability-aware sandbox extension for pi",
   "type": "module",
   "license": "MIT",
-  "keywords": ["pi-package", "pi-extension", "pi", "coding-agent", "sandbox", "security", "filesystem", "process", "network", "developer-tools", "ai-agent"],
-  "repository": { "type": "git", "url": "https://github.com/7resp4ss/pi-sandbox.git" },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi",
+    "coding-agent",
+    "sandbox",
+    "security",
+    "filesystem",
+    "process",
+    "network",
+    "developer-tools",
+    "ai-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/7resp4ss/pi-sandbox.git"
+  },
   "homepage": "https://github.com/7resp4ss/pi-sandbox#readme",
-  "bugs": { "url": "https://github.com/7resp4ss/pi-sandbox/issues" },
+  "bugs": {
+    "url": "https://github.com/7resp4ss/pi-sandbox/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -17,7 +34,7 @@
   ],
   "pi": {
     "extensions": [
-      "./dist/extension.js"
+      "./index.ts"
     ]
   },
   "scripts": {
@@ -27,15 +44,15 @@
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "^0.0.75"
+    "@anthropic-ai/sandbox-runtime": "0.0.76"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.85.1",
-    "@types/node": "^22.19.19",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.9"
+    "@earendil-works/pi-coding-agent": "0.85.1",
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
   }
 }

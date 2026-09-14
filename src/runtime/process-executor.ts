@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
+import type { EffectiveSandboxPolicy } from "../types.ts";
 
 export interface ProcessOptions {
   command: string;
@@ -9,6 +10,7 @@ export interface ProcessOptions {
   timeoutMs?: number;
   commandId: string;
   onData?: (data: Buffer) => void;
+  policy?: EffectiveSandboxPolicy;
 }
 
 function killProcessTree(child: ChildProcess): void {
@@ -31,7 +33,14 @@ export async function executeSandboxedProcess(
   const wrapped = await SandboxManager.wrapWithSandboxArgv(
     options.command,
     options.shell,
-    undefined,
+    options.policy ? {
+      filesystem: {
+        allowRead: [...options.policy.allowRead],
+        allowWrite: [...options.policy.allowWrite],
+        denyRead: [...options.policy.denyRead],
+        denyWrite: [...options.policy.denyWrite],
+      },
+    } : undefined,
     options.signal,
     options.cwd,
     { commandId: options.commandId, commandText: options.command },
