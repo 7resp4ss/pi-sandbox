@@ -15,13 +15,13 @@ function toRuntimeConfig(policy: EffectiveSandboxPolicy): SandboxRuntimeConfig {
       // Windows runtime 0.0.76 applies session grants with recursive ACL
       // propagation; this can block for 60s on large workspaces. Grants are
       // supplied at exec time instead.
-      allowRead: process.platform === "win32" ? [] : [...policy.allowRead],
+      allowRead: [...policy.allowRead],
       // Windows deny ACLs are applied per exec by sandbox-runtime. Applying
       // them during session initialization triggers the old recursive stamp
       // path and blocks startup on profile-managed directories.
-      denyRead: process.platform === "win32" ? [] : [...policy.denyRead],
-      allowWrite: process.platform === "win32" ? [] : [...policy.allowWrite],
-      denyWrite: process.platform === "win32" ? [] : [...policy.denyWrite],
+      denyRead: [...policy.denyRead],
+      allowWrite: [...policy.allowWrite],
+      denyWrite: [...policy.denyWrite],
     },
     // Windows requires an explicit srt-win path; resolveSrtWin has no
     // implicit fallback (a discovered binary could sit inside the sandbox
