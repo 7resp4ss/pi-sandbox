@@ -1,5 +1,5 @@
-import type { CapabilityRegistry } from "./capability-registry.js";
-import { createCapabilityRegistry } from "./capability-registry.js";
+import type { CapabilityRegistry } from "./capability-registry.ts";
+import { createCapabilityRegistry } from "./capability-registry.ts";
 
 const key = Symbol.for("pi-sandbox.capability-registry");
 const state = globalThis as typeof globalThis & { [key]?: CapabilityRegistry };

@@ -1,12 +1,12 @@
 import { resolve } from "node:path";
-import type { CapabilityRegistry } from "../capabilities/capability-registry.js";
+import type { CapabilityRegistry } from "../capabilities/capability-registry.ts";
 import type {
   EffectiveSandboxPolicy,
   PolicyDecision,
   PolicyEngine,
   PolicyRequest,
-} from "../types.js";
-import { expandHome, isDeniedPath, isPathAllowed } from "./path-policy.js";
+} from "../types.ts";
+import { expandHome, isDeniedPath, isPathAllowed } from "./path-policy.ts";
 
 export function createPolicyEngine(
   policy: EffectiveSandboxPolicy,

@@ -2,7 +2,7 @@ import {
   SandboxManager,
   type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
-import type { EffectiveSandboxPolicy } from "../types.js";
+import type { EffectiveSandboxPolicy } from "../types.ts";
 
 function toRuntimeConfig(policy: EffectiveSandboxPolicy): SandboxRuntimeConfig {
   return {

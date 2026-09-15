@@ -1,4 +1,4 @@
-import type { SandboxCapability } from "../types.js";
+import type { SandboxCapability } from "../types.ts";
 
 export interface ExtractionContext {
   cwd: string;

@@ -6,7 +6,7 @@ import {
   getAgentDir,
   loadConfig,
   validateToolDeclarations,
-} from "../src/config/config-loader.js";
+} from "../src/config/config-loader.ts";
 
 const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 

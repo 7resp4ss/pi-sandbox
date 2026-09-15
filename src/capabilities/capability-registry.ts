@@ -1,4 +1,4 @@
-import type { SandboxToolDeclaration } from "./capability-types.js";
+import type { SandboxToolDeclaration } from "./capability-types.ts";
 
 export interface CapabilityRegistry {
   register(declaration: SandboxToolDeclaration): void;

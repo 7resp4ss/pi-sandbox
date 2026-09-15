@@ -5,7 +5,7 @@ import type {
   SandboxCapability,
   SandboxConfig,
   SandboxToolDeclarationConfig,
-} from "../types.js";
+} from "../types.ts";
 
 const VALID_CAPABILITIES: readonly SandboxCapability[] = [
   "filesystem.read",

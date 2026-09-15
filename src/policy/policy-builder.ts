@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import type { EffectiveSandboxPolicy, SandboxConfig } from "../types.js";
-import { normalizeSandboxLevel } from "./levels.js";
+import type { EffectiveSandboxPolicy, SandboxConfig } from "../types.ts";
+import { normalizeSandboxLevel } from "./levels.ts";
 
 const DEFAULT_DENY_READ = ["~/.ssh", "~/.aws", "~/.gnupg", ".env", ".env.*"];
 const DEFAULT_NETWORK = [

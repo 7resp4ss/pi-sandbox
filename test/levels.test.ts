@@ -3,7 +3,7 @@ import {
   normalizeSandboxLevel,
   resolveSessionLevel,
   strictestLevel,
-} from "../src/policy/levels.js";
+} from "../src/policy/levels.ts";
 
 describe("strictestLevel", () => {
   it("picks the more restrictive level for every pair", () => {
