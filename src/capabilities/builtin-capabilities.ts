@@ -1,4 +1,4 @@
-import type { CapabilityRegistry } from "./capability-registry.js";
+import type { CapabilityRegistry } from "./capability-registry.ts";
 
 export function registerBuiltinCapabilities(
   registry: CapabilityRegistry,

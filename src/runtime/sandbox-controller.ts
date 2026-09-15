@@ -1,9 +1,9 @@
-import type { CapabilityRegistry } from "../capabilities/capability-registry.js";
-import { buildEffectivePolicy } from "../policy/policy-builder.js";
-import { createPolicyEngine } from "../policy/policy-engine.js";
-import type { EffectiveSandboxPolicy, PolicyEngine, SandboxConfig, SandboxLevel } from "../types.js";
-import { SandboxSession } from "./sandbox-session.js";
-import { SANDBOX_LEVEL_ENV } from "../policy/levels.js";
+import type { CapabilityRegistry } from "../capabilities/capability-registry.ts";
+import { buildEffectivePolicy } from "../policy/policy-builder.ts";
+import { createPolicyEngine } from "../policy/policy-engine.ts";
+import type { EffectiveSandboxPolicy, PolicyEngine, SandboxConfig, SandboxLevel } from "../types.ts";
+import { SandboxSession } from "./sandbox-session.ts";
+import { SANDBOX_LEVEL_ENV } from "../policy/levels.ts";
 
 /** Owns the process-wide runtime and keeps policy/runtime transitions atomic. */
 export class SandboxController {

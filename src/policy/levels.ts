@@ -1,4 +1,4 @@
-import type { SandboxLevel } from "../types.js";
+import type { SandboxLevel } from "../types.ts";
 
 /**
  * Environment variable every session exports its effective sandbox level to.

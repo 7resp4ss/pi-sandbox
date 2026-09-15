@@ -1,4 +1,4 @@
-import type { SandboxToolDeclaration } from "../capabilities/capability-types.js";
+import type { SandboxToolDeclaration } from "../capabilities/capability-types.ts";
 
 export interface ExtractedPaths {
   readPaths: string[];

@@ -7,20 +7,20 @@ export type {
   SandboxLevel,
   SandboxToolDeclarationConfig,
   UnknownToolPolicy,
-} from "./types.js";
+} from "./types.ts";
 export type {
   ExtractionContext,
   PathExtractor,
   SandboxToolDeclaration,
-} from "./capabilities/capability-types.js";
+} from "./capabilities/capability-types.ts";
 export {
   declareSandboxTool,
   getSandboxCapabilityRegistry,
-} from "./capabilities/declaration-api.js";
+} from "./capabilities/declaration-api.ts";
 export {
   normalizeSandboxLevel,
   resolveSessionLevel,
   strictestLevel,
   SANDBOX_LEVEL_ENV,
-} from "./policy/levels.js";
-export { getAgentDir, loadConfig } from "./config/config-loader.js";
+} from "./policy/levels.ts";
+export { getAgentDir, loadConfig } from "./config/config-loader.ts";

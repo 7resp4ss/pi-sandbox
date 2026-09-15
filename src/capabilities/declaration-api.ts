@@ -1,6 +1,6 @@
-import type { SandboxToolDeclaration } from "./capability-types.js";
-import type { CapabilityRegistry } from "./capability-registry.js";
-import { getSharedCapabilityRegistry } from "./registry-instance.js";
+import type { SandboxToolDeclaration } from "./capability-types.ts";
+import type { CapabilityRegistry } from "./capability-registry.ts";
+import { getSharedCapabilityRegistry } from "./registry-instance.ts";
 
 export function declareSandboxTool(declaration: SandboxToolDeclaration): void {
   getSharedCapabilityRegistry().register(declaration);

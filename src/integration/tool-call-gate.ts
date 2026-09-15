@@ -1,6 +1,6 @@
-import type { CapabilityRegistry } from "../capabilities/capability-registry.js";
-import type { PolicyEngine } from "../types.js";
-import { extractPaths } from "./tool-input-extractors.js";
+import type { CapabilityRegistry } from "../capabilities/capability-registry.ts";
+import type { PolicyEngine } from "../types.ts";
+import { extractPaths } from "./tool-input-extractors.ts";
 
 /**
  * Adapts a pi `tool_call` event to the policy engine: extracts the paths a

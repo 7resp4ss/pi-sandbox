@@ -6,19 +6,19 @@ import {
   type Theme,
   type ThemeColor,
 } from "@earendil-works/pi-coding-agent";
-import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.js";
-import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.js";
-import { loadConfig } from "../config/config-loader.js";
+import { getSandboxCapabilityRegistry } from "../capabilities/declaration-api.ts";
+import { registerBuiltinCapabilities } from "../capabilities/builtin-capabilities.ts";
+import { loadConfig } from "../config/config-loader.ts";
 import {
   normalizeSandboxLevel,
   resolveSessionLevel,
   SANDBOX_LEVEL_ENV,
   strictestLevel,
-} from "../policy/levels.js";
-import { executeSandboxedProcess } from "../runtime/process-executor.js";
-import { SandboxController } from "../runtime/sandbox-controller.js";
-import type { SandboxLevel } from "../types.js";
-import { checkToolCall } from "./tool-call-gate.js";
+} from "../policy/levels.ts";
+import { executeSandboxedProcess } from "../runtime/process-executor.ts";
+import { SandboxController } from "../runtime/sandbox-controller.ts";
+import type { SandboxLevel } from "../types.ts";
+import { checkToolCall } from "./tool-call-gate.ts";
 
 let executionCounter = 0;
 

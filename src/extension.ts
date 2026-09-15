@@ -1,1 +1,1 @@
-export { default } from "./integration/extension.js";
+export { default } from "./integration/extension.ts";

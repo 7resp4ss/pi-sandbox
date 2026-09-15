@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createCapabilityRegistry } from "../src/capabilities/capability-registry.js";
-import { extractPaths } from "../src/integration/tool-input-extractors.js";
-import { normalizeSandboxLevel } from "../src/policy/levels.js";
-import { buildEffectivePolicy } from "../src/policy/policy-builder.js";
-import { createPolicyEngine } from "../src/policy/policy-engine.js";
+import { createCapabilityRegistry } from "../src/capabilities/capability-registry.ts";
+import { extractPaths } from "../src/integration/tool-input-extractors.ts";
+import { normalizeSandboxLevel } from "../src/policy/levels.ts";
+import { buildEffectivePolicy } from "../src/policy/policy-builder.ts";
+import { createPolicyEngine } from "../src/policy/policy-engine.ts";
 
 describe("sandbox policy", () => {
   it("allows workspace reads and denies workspace writes in r", () => {
