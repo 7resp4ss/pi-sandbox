@@ -1,18 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, resolve } from "node:path";
-import {
-  SandboxManager,
-  grantWindowsAcl,
-  revokeWindowsAcl,
-  restoreWindowsAcl,
-  getWindowsSandboxUserStatus,
-  resolveSrtWin,
-  VENDORED_SRT_WIN_EXE,
-} from "@anthropic-ai/sandbox-runtime";
-import type { EffectiveSandboxPolicy } from "../types.ts";
-import { expandWindowsFsGlobs } from "./windows-glob-expand.ts";
+import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 
 export interface ProcessOptions {
   command: string;
@@ -22,7 +9,6 @@ export interface ProcessOptions {
   timeoutMs?: number;
   commandId: string;
   onData?: (data: Buffer) => void;
-  policy?: EffectiveSandboxPolicy;
 }
 
 function killProcessTree(child: ChildProcess): void {
@@ -37,88 +23,28 @@ function killProcessTree(child: ChildProcess): void {
   child.kill("SIGKILL");
 }
 
-function windowsGrantPaths(paths: readonly string[], cwd: string): string[] {
-  return paths.flatMap((path) => {
-    if (path.startsWith("/")) return [];
-    const expanded = path === "~"
-      ? homedir()
-      : path.startsWith("~/") || path.startsWith("~\\")
-        ? resolve(homedir(), path.slice(2))
-        : isAbsolute(path)
-          ? path
-          : resolve(cwd, path);
-    return existsSync(expanded) ? [expanded] : [];
-  });
-}
-
 export async function executeSandboxedProcess(
   options: ProcessOptions,
 ): Promise<{ exitCode: number | null }> {
   // The runtime returns a complete argv so the caller never needs a second
   // shell parse. This matters for both quoting and cross-platform use.
-  const denyRead = options.policy && process.platform === "win32"
-    ? expandWindowsFsGlobs(options.policy.denyRead, options.cwd, homedir())
-    : options.policy?.denyRead;
-  const denyWrite = options.policy && process.platform === "win32"
-    ? expandWindowsFsGlobs(options.policy.denyWrite, options.cwd, homedir())
-    : options.policy?.denyWrite;
   const wrapped = await SandboxManager.wrapWithSandboxArgv(
     options.command,
     options.shell,
-    options.policy ? {
-      filesystem: {
-        allowWrite: [],
-        denyRead: [...(denyRead ?? [])],
-        denyWrite: [...(denyWrite ?? [])],
-      },
-    } : undefined,
+    undefined,
     options.signal,
     options.cwd,
     { commandId: options.commandId, commandText: options.command },
   );
-  const windows = process.platform === "win32" && options.policy
-    ? (() => {
-        const srtWin = resolveSrtWin({ path: VENDORED_SRT_WIN_EXE });
-        return { status: getWindowsSandboxUserStatus({ srtWin }), srtWin };
-      })()
-    : undefined;
-  let windowsAclGranted = false;
-  if (windows?.status.sid && options.policy) {
-    try {
-      grantWindowsAcl({
-        sandboxUserSid: windows.status.sid,
-        holderPid: process.pid,
-        read: windowsGrantPaths(options.policy.allowRead, options.cwd),
-        write: windowsGrantPaths(options.policy.allowWrite, options.cwd),
-        srtWin: windows.srtWin,
-      });
-      windowsAclGranted = true;
-    } catch (error) {
-      revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-      restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-      throw error;
-    }
-  }
-
 
   return new Promise((resolve, reject) => {
-    let child: ChildProcess;
-    try {
-      child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
-        cwd: options.cwd,
-        env: wrapped.env,
-        shell: false,
-        detached: process.platform !== "win32",
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-    } catch (error) {
-      if (windowsAclGranted && windows?.status.sid) {
-        revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-        restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-      }
-      reject(error);
-      return;
-    }
+    const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
+      cwd: options.cwd,
+      env: wrapped.env,
+      shell: false,
+      detached: process.platform !== "win32",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     if (options.onData) {
       child.stdout?.on("data", options.onData);
       child.stderr?.on("data", options.onData);
@@ -129,10 +55,6 @@ export async function executeSandboxedProcess(
     const onAbort = () => terminate();
     options.signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => {
-      if (windowsAclGranted && windows?.status.sid) {
-        revokeWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-        restoreWindowsAcl({ sandboxUserSid: windows.status.sid, holderPid: process.pid, srtWin: windows.srtWin });
-      }
       if (timer) clearTimeout(timer);
       options.signal?.removeEventListener("abort", onAbort);
     };
