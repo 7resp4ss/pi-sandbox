@@ -6,6 +6,7 @@ import type {
   SandboxConfig,
   SandboxToolDeclarationConfig,
 } from "../types.ts";
+import { validateIsolatedExtensions } from "../isolated/config.ts";
 
 const VALID_CAPABILITIES: readonly SandboxCapability[] = [
   "filesystem.read",
@@ -74,7 +75,7 @@ export function getAgentDir(home = homedir()): string {
   return process.env.PI_CODING_AGENT_DIR ?? join(home, ".pi", "agent");
 }
 
-function readConfigFile(path: string): SandboxConfig {
+function readConfigFile(path: string, allowIsolatedExtensions: boolean): SandboxConfig {
   let contents: string;
   try {
     contents = readFileSync(path, "utf8");
@@ -97,6 +98,13 @@ function readConfigFile(path: string): SandboxConfig {
 
   const config = value as SandboxConfig;
   config.tools = validateToolDeclarations(config.tools, `tools in ${path}`);
+  if (!allowIsolatedExtensions && config.isolatedExtensions !== undefined) {
+    throw new Error(`isolatedExtensions is only allowed in the global sandbox config: ${path}`);
+  }
+  config.isolatedExtensions = validateIsolatedExtensions(
+    config.isolatedExtensions,
+    `isolatedExtensions in ${path}`,
+  );
   return config;
 }
 
@@ -113,13 +121,15 @@ function mergeConfigs(
       global.tools || project.tools
         ? { ...global.tools, ...project.tools }
         : undefined,
+    isolatedExtensions: global.isolatedExtensions,
   };
 }
 
 export function loadConfig(cwd: string, home = homedir()): SandboxConfig {
   const global = readConfigFile(
     join(getAgentDir(home), "extensions", "sandbox.json"),
+    true,
   );
-  const project = readConfigFile(join(cwd, ".pi", "sandbox.json"));
+  const project = readConfigFile(join(cwd, ".pi", "sandbox.json"), false);
   return mergeConfigs(global, project);
 }

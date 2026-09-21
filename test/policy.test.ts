@@ -33,6 +33,28 @@ describe("sandbox policy", () => {
     ).toBe(false);
   });
 
+  it("denies declared host network tools in r", () => {
+    const registry = createCapabilityRegistry();
+    registry.register({
+      toolName: "web_search",
+      capabilities: ["network.connect"],
+    });
+    const readonly = createPolicyEngine(
+      buildEffectivePolicy({ level: "r" }, "/workspace"),
+      registry,
+    );
+    expect(
+      readonly.check({ toolName: "web_search", cwd: "/workspace" }),
+    ).toEqual({ allowed: false, reason: "network access is disabled in r mode" });
+    const writable = createPolicyEngine(
+      buildEffectivePolicy({ level: "w" }, "/workspace"),
+      registry,
+    );
+    expect(
+      writable.check({ toolName: "web_search", cwd: "/workspace" }).allowed,
+    ).toBe(true);
+  });
+
   it("denies undeclared tools by default", () => {
     const engine = createPolicyEngine(
       buildEffectivePolicy({ level: "w" }, "/workspace"),

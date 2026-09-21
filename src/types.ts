@@ -13,11 +13,51 @@ export interface SandboxToolDeclarationConfig {
   capabilities: readonly SandboxCapability[];
 }
 
+export interface IsolatedCredentialConfig {
+  mode: "deny" | "mask";
+  injectHosts?: string[];
+}
+
+export interface IsolatedCredentialFileConfig
+  extends IsolatedCredentialConfig {
+  path: string;
+}
+
+export interface IsolatedCredentialEnvConfig extends IsolatedCredentialConfig {
+  name: string;
+}
+
+export interface IsolatedExtensionConfig {
+  entry: string;
+  sandbox?: {
+    filesystem?: {
+      allowRead?: string[];
+      denyRead?: string[];
+      allowWrite?: string[];
+      denyWrite?: string[];
+    };
+    network?: { allowedDomains?: string[]; deniedDomains?: string[] };
+    credentials?: {
+      files?: IsolatedCredentialFileConfig[];
+      envVars?: IsolatedCredentialEnvConfig[];
+    };
+  };
+  process?: { childProcessApi?: boolean };
+  environment?: { allowNonSecret?: string[] };
+  limits?: {
+    startupMs?: number;
+    callMs?: number;
+    maxMessageBytes?: number;
+  };
+}
+
 export interface SandboxConfig {
   level?: SandboxLevel;
   unknownTools?: UnknownToolPolicy;
   /** Tool capability declarations; config can extend but not remove builtins. */
   tools?: Record<string, SandboxToolDeclarationConfig>;
+  /** Untrusted extensions. Accepted only in the global sandbox config. */
+  isolatedExtensions?: Record<string, IsolatedExtensionConfig>;
   network?: { allowedDomains?: string[]; deniedDomains?: string[] };
   filesystem?: {
     allowRead?: string[];

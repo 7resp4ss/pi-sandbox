@@ -8,6 +8,7 @@
   "repository": { "type": "git", "url": "https://github.com/7resp4ss/pi-sandbox.git" },
   "homepage": "https://github.com/7resp4ss/pi-sandbox#readme",
   "bugs": { "url": "https://github.com/7resp4ss/pi-sandbox/issues" },
+  "engines": { "node": ">=22.19.0" },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -27,7 +28,9 @@
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "^0.0.75"
+    "@anthropic-ai/sandbox-runtime": "0.0.75",
+    "jiti": "2.7.0",
+    "undici": "8.10.2"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

@@ -19,6 +19,7 @@ import { executeSandboxedProcess } from "../runtime/process-executor.ts";
 import { SandboxController } from "../runtime/sandbox-controller.ts";
 import type { SandboxLevel } from "../types.ts";
 import { checkToolCall } from "./tool-call-gate.ts";
+import { IsolatedExtensionManager } from "../isolated/manager.ts";
 
 let executionCounter = 0;
 
@@ -61,6 +62,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
   const originalPowerShell = createPowerShellTool(originalCwd);
 
   const controller = new SandboxController(registry);
+  const isolatedExtensions = new IsolatedExtensionManager(pi);
   /**
    * Level inherited through PI_SANDBOX_LEVEL at session start, if any.
    * Runtime switches may move within it but never above it, mirroring the
@@ -115,12 +117,16 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
       env: envLevel,
     });
     await controller.switchTo(config, level, ctx.cwd);
+    await isolatedExtensions.start(config.isolatedExtensions, ctx.cwd, (message) =>
+      ctx.ui.notify(`isolated extension failed: ${message}`, "error"),
+    );
     ctx.ui.setStatus("sandbox", formatSandboxStatus(ctx.ui.theme, level));
     if (level === "yolo")
       ctx.ui.notify("sandbox mode is yolo", "warning");
   });
 
   pi.on("session_shutdown", async () => {
+    await isolatedExtensions.stop();
     await controller.shutdown();
   });
 
@@ -151,6 +157,7 @@ export default function registerPiSandbox(pi: ExtensionAPI): void {
             `Sandbox level: ${policy.level}`,
             `Unknown tools: ${policy.unknownTools}`,
             `Workspace: ${policy.workspace}`,
+            `Isolated extensions: ${isolatedExtensions.activeCount}`,
             "Usage: /sandbox <r|w|yolo>",
           ].join("\n"),
           "info",

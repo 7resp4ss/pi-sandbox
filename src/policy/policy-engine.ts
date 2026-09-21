@@ -64,6 +64,15 @@ export function createPolicyEngine(
           reason: "filesystem writes are disabled in r mode",
         };
       }
+      if (
+        policy.level === "r" &&
+        declaration.capabilities.includes("network.connect")
+      ) {
+        return {
+          allowed: false,
+          reason: "network access is disabled in r mode",
+        };
+      }
 
       return { allowed: true };
     },

@@ -1,5 +1,9 @@
 export type {
   EffectiveSandboxPolicy,
+  IsolatedCredentialConfig,
+  IsolatedCredentialEnvConfig,
+  IsolatedCredentialFileConfig,
+  IsolatedExtensionConfig,
   PolicyDecision,
   PolicyRequest,
   SandboxCapability,
@@ -24,3 +28,4 @@ export {
   SANDBOX_LEVEL_ENV,
 } from "./policy/levels.ts";
 export { getAgentDir, loadConfig } from "./config/config-loader.ts";
+export { buildExtensionRuntimeConfig } from "./isolated/config.ts";

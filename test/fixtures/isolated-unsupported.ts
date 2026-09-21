@@ -1,0 +1,5 @@
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+export default function unsupportedExtension(pi: ExtensionAPI): void {
+  pi.on("session_start", () => undefined);
+}

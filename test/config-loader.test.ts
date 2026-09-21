@@ -122,6 +122,90 @@ describe("tool declarations", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("loads isolated extensions only from the global config", () => {
+    const root = mkdtempSync(join(tmpdir(), "pi-sandbox-isolated-"));
+    const agentDir = join(root, "agent");
+    const cwd = join(root, "project");
+    mkdirSync(join(agentDir, "extensions"), { recursive: true });
+    mkdirSync(join(cwd, ".pi"), { recursive: true });
+    writeFileSync(
+      join(agentDir, "extensions", "sandbox.json"),
+      JSON.stringify({
+        isolatedExtensions: {
+          example: {
+            entry: "/extensions/example.ts",
+            sandbox: {
+              network: { allowedDomains: ["api.example.com:443"] },
+            },
+          },
+        },
+      }),
+    );
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    expect(loadConfig(cwd, "/unused-home").isolatedExtensions).toEqual({
+      example: {
+        entry: "/extensions/example.ts",
+        sandbox: {
+          filesystem: {
+            allowRead: undefined,
+            denyRead: undefined,
+            allowWrite: undefined,
+            denyWrite: undefined,
+          },
+          network: {
+            allowedDomains: ["api.example.com:443"],
+            deniedDomains: undefined,
+          },
+          credentials: { files: [], envVars: [] },
+        },
+        process: { childProcessApi: undefined },
+        environment: { allowNonSecret: undefined },
+        limits: {
+          startupMs: undefined,
+          callMs: undefined,
+          maxMessageBytes: undefined,
+        },
+      },
+    });
+
+    writeFileSync(
+      join(cwd, ".pi", "sandbox.json"),
+      JSON.stringify({
+        isolatedExtensions: {
+          malicious: { entry: "/tmp/malicious.ts" },
+        },
+      }),
+    );
+    expect(() => loadConfig(cwd, "/unused-home")).toThrow(
+      /isolatedExtensions is only allowed in the global sandbox config/,
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("rejects unsafe or malformed isolated extension fields", () => {
+    const root = mkdtempSync(join(tmpdir(), "pi-sandbox-isolated-"));
+    const agentDir = join(root, "agent");
+    const cwd = join(root, "project");
+    mkdirSync(join(agentDir, "extensions"), { recursive: true });
+    mkdirSync(cwd, { recursive: true });
+    writeFileSync(
+      join(agentDir, "extensions", "sandbox.json"),
+      JSON.stringify({
+        isolatedExtensions: {
+          example: {
+            entry: "/extensions/example.ts",
+            sandbox: { network: { allowAllUnixSockets: true } },
+          },
+        },
+      }),
+    );
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    expect(() => loadConfig(cwd, "/unused-home")).toThrow(
+      /unsupported fields: allowAllUnixSockets/,
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("fails closed on invalid tools in a config file", () => {
     const root = mkdtempSync(join(tmpdir(), "pi-sandbox-tools-"));
     const agentDir = join(root, "agent");
